@@ -393,3 +393,265 @@ Remove unused Docker image layers afterward if desired:
 ```bash
 docker image prune
 ```
+## Troubleshooting
+
+### NordVPN Authentication Fails
+
+If Gluetun repeatedly restarts or the VPN connection fails, check the Gluetun logs:
+
+```bash
+docker logs gluetun --tail=100
+```
+
+If the logs show an authentication error, verify that you are using your NordVPN manual OpenVPN service credentials.
+
+Do not use your normal NordVPN account password unless NordVPN specifically instructs you to do so.
+
+Edit the environment file:
+
+```bash
+nano /opt/qbittorrent-vpn/.env
+```
+
+Verify:
+
+```env
+OPENVPN_USER=YOUR_NORDVPN_SERVICE_USERNAME
+OPENVPN_PASSWORD=YOUR_NORDVPN_SERVICE_PASSWORD
+```
+
+Save the file and recreate the stack:
+
+```bash
+cd /opt/qbittorrent-vpn
+docker compose down
+docker compose up -d
+```
+
+Then check the logs again:
+
+```bash
+docker logs gluetun --tail=50
+```
+
+---
+
+### qBittorrent Web UI Does Not Open
+
+First verify that both containers are running:
+
+```bash
+docker compose ps
+```
+
+Then confirm that port `8080` is published by the Gluetun service.
+
+The Compose file should include:
+
+```yaml
+ports:
+  - "8080:8080"
+```
+
+Because qBittorrent uses Gluetun's network namespace, the qBittorrent Web UI port must be published through Gluetun.
+
+Try opening:
+
+```text
+http://YOUR_CONTAINER_IP:8080
+```
+
+If the page still does not load, check both logs:
+
+```bash
+docker logs gluetun --tail=50
+docker logs qbittorrent --tail=50
+```
+
+---
+
+### qBittorrent Temporary Password
+
+If you do not know the initial qBittorrent Web UI password, check:
+
+```bash
+docker logs qbittorrent
+```
+
+Look for the temporary administrator password generated during startup.
+
+The default username is typically:
+
+```text
+admin
+```
+
+Change the password after your first login.
+
+---
+
+### Downloads Fail With Permission Errors
+
+Check the permissions of the download directory:
+
+```bash
+ls -ld /mnt/downloads
+```
+
+Also check its contents:
+
+```bash
+ls -la /mnt/downloads
+```
+
+The LinuxServer qBittorrent container uses the `PUID` and `PGID` values configured in the `.env` file.
+
+Example:
+
+```env
+PUID=1000
+PGID=1000
+```
+
+Verify the user and group IDs inside the system:
+
+```bash
+id
+```
+
+If you are using mounted storage such as NFS, Samba, or a Proxmox bind mount, permissions must also be correct on the underlying storage.
+
+Do not solve permission issues by blindly using `chmod 777` on everything.
+
+Determine which user and group should own the download directory and assign appropriate permissions.
+
+---
+
+### Verify qBittorrent Is Actually Using the VPN
+
+Check Gluetun's public IP:
+
+```bash
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+```
+
+Then check qBittorrent's public IP from the same shared network namespace:
+
+```bash
+docker exec qbittorrent wget -qO- https://ipinfo.io/ip
+```
+
+Both should report the same VPN exit IP.
+
+That IP should be different from your normal home public IP.
+
+If they are different from each other, stop the stack and review the Compose configuration before downloading anything.
+
+---
+
+### qBittorrent Has No Internet Access
+
+First check Gluetun:
+
+```bash
+docker logs gluetun --tail=100
+```
+
+Then verify that Gluetun itself has internet access:
+
+```bash
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+```
+
+If that command fails, troubleshoot the VPN connection first.
+
+qBittorrent depends on Gluetun for network access.
+
+---
+
+### Gluetun Works but qBittorrent Will Not Start
+
+Check:
+
+```bash
+docker logs qbittorrent --tail=100
+```
+
+Then inspect the complete stack:
+
+```bash
+docker compose ps
+```
+
+Try recreating qBittorrent:
+
+```bash
+docker compose up -d --force-recreate qbittorrent
+```
+
+If the problem continues, recreate the full stack:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+---
+
+### Check Docker Compose Configuration
+
+Before starting the stack, validate the Compose file:
+
+```bash
+docker compose config
+```
+
+If there is a YAML formatting problem, Docker Compose will report it here.
+
+This is especially useful after editing `docker-compose.yml`.
+
+---
+
+### View Live Logs
+
+Gluetun:
+
+```bash
+docker logs -f gluetun
+```
+
+qBittorrent:
+
+```bash
+docker logs -f qbittorrent
+```
+
+Press:
+
+```text
+Ctrl+C
+```
+
+to stop following the logs.
+
+---
+
+## Important VPN Safety Check
+
+Before adding torrents, always confirm that Gluetun is connected and that qBittorrent is using the VPN exit IP.
+
+Run:
+
+```bash
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+```
+
+and:
+
+```bash
+docker exec qbittorrent wget -qO- https://ipinfo.io/ip
+```
+
+Both results should match.
+
+If the VPN is not connected or the IP addresses do not match, stop and troubleshoot the configuration before continuing.
