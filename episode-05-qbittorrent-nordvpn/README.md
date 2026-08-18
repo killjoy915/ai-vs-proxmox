@@ -54,7 +54,7 @@ Video:
 
 **AI vs Proxmox: Can AI Build qBittorrent with NordVPN?**
 
-YouTube link will be added after publication.
+[YouTube link will be added after publication.](https://www.youtube.com/watch?v=9FEDPPoAcvs)
 
 ## Prerequisites
 
