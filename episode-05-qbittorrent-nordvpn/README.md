@@ -332,23 +332,7 @@ docker logs qbittorrent --tail=40
 
 If both containers are running, the VPN reports a different public IP, and the qBittorrent Web UI loads correctly, the basic deployment is working.
 
----
 
-## Security Notes
-
-Never publish:
-
-* NordVPN service credentials
-* `.env` files containing passwords
-* API keys
-* authentication tokens
-* private keys
-* cookies or session tokens
-* SSH private keys
-
-Before posting screenshots, videos, configuration files, or terminal output publicly, review them for credentials and other access-related information.
-
-The `.env.example` file in this repository contains placeholders only.
 
 ---
 
