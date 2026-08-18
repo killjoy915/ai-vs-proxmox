@@ -1,0 +1,16 @@
+# Never upload real environment files
+.env
+.env.*
+
+# Keep the public example
+!.env.example
+
+# qBittorrent runtime configuration
+config/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
